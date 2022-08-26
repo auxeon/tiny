@@ -47,6 +47,16 @@ class CMoveUpDown(CComponent):
   downspeed:float = 0.005
   goingup:bool = True
 
-allcomponents = [CPosition, CRotation, CScale, CColor, CHealth, CRectangle, CMoveUpDown]
+
+@dataclass
+class CMoveLeftRight(CComponent):
+  halfduration:float = 1.0
+  uptime:float = halfduration
+  downtime:float = halfduration
+  upspeed:float = 0.005
+  downspeed:float = 0.005
+  goingup:bool = True
+
+allcomponents = [CPosition, CRotation, CScale, CColor, CHealth, CRectangle, CMoveUpDown, CMoveLeftRight]
 id2component = {key:val for key,val in enumerate(allcomponents)}
 component2id = {key:val for val,key in enumerate(allcomponents)}

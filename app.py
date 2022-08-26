@@ -10,9 +10,6 @@ import imgui
 from imgui.integrations.glfw import GlfwRenderer
 
 class GUIScreen0(Tiny):
-  """
-  using imgui will limit to single screen since imgui uses a singleton shared context
-  """
   def __init__(self, w: int, h: int, title: str):
     super().__init__(w, h, title)
 
@@ -74,46 +71,30 @@ class GUIScreen0(Tiny):
 class GameScreen0(Tiny):
   def __init__(self, w: int, h: int, title: str):
     super().__init__(w, h, title)
+
+    
+  def init(self) -> None:
     self.ecs = ECS()
-    self.systems = [syz.SUpDown()]
-    self.ecs.registerSystem(self.systems[0], self.systems[0].comset)
+    self.systems = [syz.SUpDown(), syz.SLeftRight()]
     for s in self.systems:
       s.init()
-    self.e0 = self.ecs.createEntity()
-    self.ecs.addComponent(self.e0, com.CPosition, com.CPosition(
-      0.0,-0.6,0.0
-    ))
-    self.ecs.addComponent(self.e0, com.CMoveUpDown, com.CMoveUpDown(
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      1.0,
-      True,
-    ))
-    self.e0 = self.ecs.createEntity()
-    self.ecs.addComponent(self.e0, com.CPosition, com.CPosition(
-      -0.2,-0.6,0.0
-    ))
-    self.ecs.addComponent(self.e0, com.CMoveUpDown, com.CMoveUpDown(
-      1.0,
-      1.0,
-      1.0,
-      1.5,
-      1.5,
-      True,
-    ))
-    self.t0 = time.monotonic_ns()
-    self.fixedupdate = True
-  
-  def init(self) -> None:
-    ...
+      self.ecs.registerSystem(s, s.comset)
+    
+    for i in range(500):
+      e0 = self.ecs.createEntity()
+      upspeed = random.random()
+      downspeed = random.random()
+      self.ecs.addComponent(e0, com.CPosition, com.CPosition(random.random()*2 -1.0,random.random()*2 - 1.0,0.0))
+      self.ecs.addComponent(e0, com.CMoveUpDown, com.CMoveUpDown(0.5,0.5,0.5,upspeed,downspeed,True))
+
+      e0 = self.ecs.createEntity()
+      self.ecs.addComponent(e0, com.CPosition, com.CPosition(random.random()*2 -1.0,random.random()*2 - 1.0,0.0))
+      self.ecs.addComponent(e0, com.CMoveLeftRight, com.CMoveLeftRight(0.5,0.5,0.5,upspeed,downspeed,True))
     
   def update(self, dt:float) -> None:
-    _dt = 1/consts.MAXFPS if self.fixedupdate else dt
+    glfw.set_window_title(self.window, f"{self.title} [FPS : {1/(Tiny.fps + 0.000000000001):0.6f}]")
     for s in self.systems:
-      s.update(self.ecs, _dt)
-    self.t0 = time.monotonic_ns()
+      s.update(self.ecs, dt)
 
   def shutdown(self) -> None:
     for s in self.systems:
@@ -121,10 +102,8 @@ class GameScreen0(Tiny):
 
 if __name__ == "__main__":
   # can only have a single gui screen because pyimgui uses a singleton imgui context
-  guiscreen = (GUIScreen0(800, 800, "GUI Screen"))
+  # guiscreen = (GUIScreen0(800, 800, "GUI Screen"))
   gamescreens = (
-    GameScreen0(700, 700, "Game Screen"),
-    GameScreen0(700, 700, "Game Screen"),
     GameScreen0(700, 700, "Game Screen"),
   )
   Tiny.run()

@@ -163,9 +163,14 @@ class Tiny(ABC):
   running = False
   updatefuncs = defaultdict(lambda: None)
   shutdownfuncs = defaultdict(lambda: None)
-  expectedtime = int(1/consts.MAXFPS*1e9)
+  expectedtime = 1/consts.MAXFPS if consts.MAXFPS != 0 else 0
   frametime = 0.0
   toremove = []
+  fpsbufsz = 10
+  ri = 0
+  wi = fpsbufsz - 1
+  fpsrolling = [0]*fpsbufsz
+  fps = 0
 
   def __init__(self:"Tiny", w:int, h:int, title:str):
     self.id:uuid.UUID = uuid.uuid4()
@@ -179,6 +184,8 @@ class Tiny(ABC):
     if not Tiny.running:
       Tiny.running = True
     self.init()
+    self.title = title
+
     
   @classmethod
   def __shutdown(cls, keylist:List[uuid.UUID]):
@@ -198,20 +205,24 @@ class Tiny(ABC):
       Tiny.__shutdown(GraphicsManager.running.keys())
     cls.toremove:List[int] = []
     while Tiny.running:
-      cls.t0 = time.monotonic_ns()
+      cls.fpsrolling[cls.wi] = cls.frametime
+      cls.fps += (cls.fpsrolling[cls.wi] - cls.fpsrolling[cls.ri])/(cls.fpsbufsz-1)
+      cls.wi = (cls.wi + 1) % (cls.fpsbufsz)
+      cls.ri = (cls.ri + 1) % (cls.fpsbufsz)
+      cls.t0 = glfw.get_time()
       for id in GraphicsManager.windows.keys():
         window = GraphicsManager.windows[id]
         GraphicsManager.makeWindowCurrent(id)
         gl.glClearColor(0,0,0,1)
         gl.glClear(gl.GL_COLOR_BUFFER_BIT)
         glfw.poll_events()
-        Tiny.updatefuncs[id](cls.frametime/1e9)
+        Tiny.updatefuncs[id](cls.frametime)
         glfw.swap_buffers(window)
         if glfw.window_should_close(window):
           cls.toremove.append(id)
-      cls.frametime = (time.monotonic_ns() - cls.t0)
-      if cls.frametime < cls.expectedtime:
-        time.sleep(1/1e9 * (cls.expectedtime - cls.frametime))
+      cls.frametime = glfw.get_time() - cls.t0
+      while cls.frametime < cls.expectedtime and consts.MAXFPS != 0:
+        cls.frametime = glfw.get_time() - cls.t0
       Tiny.__shutdown(cls.toremove)
       cls.toremove.clear()
   
