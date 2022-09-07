@@ -7,6 +7,7 @@ from dataclasses import dataclass
 import constants as consts
 from utils import ID
 import components as com
+import importlib, inspect
 
 @dataclass
 class CComponent(ABC):
@@ -31,6 +32,12 @@ class ECS:
   def __init__(self:"ECS"):
     self.entgenid = ID(consts.MAXENTS)
     self.sysgenid = ID(consts.MAXSYS)
+    self.allcomponents = []
+    for name, cls in inspect.getmembers(importlib.import_module("components"), inspect.isclass):
+      if cls.__module__ == "components":
+        self.allcomponents.append(cls)
+    self.id2component = {key:val for key,val in enumerate(self.allcomponents)}
+    self.component2id = {key:val for val,key in enumerate(self.allcomponents)}
     self.entarchetypedb:Dict[int, Set[int]] = defaultdict(lambda: set())
     self.sysarchetypedb:Dict[int, Set[int]] = defaultdict(lambda: set())
     self.sys2id:Dict[SSystem(), int] = defaultdict(lambda: None)
@@ -68,7 +75,7 @@ class ECS:
 
   def addComponent(self:"ECS", entid:int, comtype:Type, componentdata:Any) -> None:
     atype = self.getArchetype(entid)
-    comid = com.component2id[comtype]
+    comid = self.component2id[comtype]
     if entid in self.ent2index[comid]:
       raise Exception("trying to add pre-existing component")
     pool = self.compooldb[comid]
@@ -86,7 +93,7 @@ class ECS:
     self.systemUpdateEntityArchetypeChanged(entid, atype)
 
   def removeComponent(self:"ECS", entid:int, comtype:Type) -> None:
-    comid = com.component2id(comtype)
+    comid = self.component2id[comtype]
     if entid in self.ent2index[comid]:
       raise Exception("trying to add pre-existing component")
     removeindex = self.ent2index[comid][entid]
@@ -100,14 +107,14 @@ class ECS:
     self.compoolsz[comid] -= 1
     
   def getComponent(self:"ECS", entid:int, comtype:Type) -> Any:
-    comid = com.component2id[comtype]
+    comid = self.component2id[comtype]
     if entid not in self.ent2index[comid]:
       raise Exception("component does not exist")
     return self.compooldb[comid][self.ent2index[comid][entid]]
   
   def onEntityDestroy(self:"ECS", entid:int):
-    for comtype in com.allcomponents:
-      comid = com.component2id(comtype)
+    for comtype in self.allcomponents:
+      comid = self.component2id[comtype]
       if entid in self.ent2index[comid]:
         self.removeComponent(entid, comtype)
   
@@ -122,8 +129,8 @@ class ECS:
     if sysid in self.sysarchetypedb:
       raise Exception("error assigning system archetype")
     for component in comset:
-      if component in com.allcomponents:
-        comid = com.component2id[component]
+      if component in self.allcomponents:
+        comid = self.component2id[component]
         self.sysarchetypedb[sysid].add(comid)
       else:
         raise Exception("invalid component in system archetypre component id list")

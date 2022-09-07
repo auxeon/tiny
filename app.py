@@ -9,10 +9,7 @@ from engine import Tiny, GraphicsManager, ECS
 import imgui
 from imgui.integrations.glfw import GlfwRenderer
 
-class GUIScreen0(Tiny):
-  def __init__(self, w: int, h: int, title: str):
-    super().__init__(w, h, title)
-
+class GUIScreen(Tiny):
   def init(self) -> None:
     self.imguictx = imgui.create_context()
     self.implimgui = GlfwRenderer(self.window)
@@ -68,11 +65,7 @@ class GUIScreen0(Tiny):
     self.colors *= 0
     imgui.destroy_context(self.imguictx)
   
-class GameScreen0(Tiny):
-  def __init__(self, w: int, h: int, title: str):
-    super().__init__(w, h, title)
-
-    
+class GameScreen(Tiny):
   def init(self) -> None:
     self.ecs = ECS()
     self.systems = [syz.SUpDown(), syz.SLeftRight()]
@@ -100,10 +93,32 @@ class GameScreen0(Tiny):
     for s in self.systems:
       s.shutdown()
 
+class ControllerApp(Tiny):
+  def init(self:"ControllerApp"):
+    self.num = 100
+    self.ecs = ECS()
+    self.systems = [syz.SSquareNoisyController(self.window, 1)]
+    [(lambda: self.ecs.registerSystem(s, s.comset) and s.init())() for s in self.systems]
+
+    for i in range(self.num):
+      e0 = self.ecs.createEntity()
+      self.ecs.addComponent(e0, com.CPosition, com.CPosition(random.random()*2 - 1.0, random.random()*2 - 1.0, 0.0))
+      self.ecs.addComponent(e0, com.CRectangle, com.CRectangle(0.10, 0.10))
+      self.ecs.addComponent(e0, com.CColor, com.CColor(random.random(), random.random(), random.random(), 1.0) )
+
+  def update(self:"ControllerApp", dt:float):
+    glfw.set_window_title(self.window, f"{self.title} [{1/(Tiny.fps + consts.EPSILON)}]")
+    for s in self.systems:
+      s.update(self.ecs, dt + consts.EPSILON)
+
+  def shutdown(self:"ControllerApp"):
+    ...
+
 if __name__ == "__main__":
   # can only have a single gui screen because pyimgui uses a singleton imgui context
-  # guiscreen = (GUIScreen0(800, 800, "GUI Screen"))
   gamescreens = (
-    GameScreen0(700, 700, "Game Screen"),
+    GUIScreen(700, 700, "GUI Screen"),
+    GameScreen(700, 700, "Game Screen"),
+    ControllerApp(700, 700, "Square Controller"),
   )
   Tiny.run()

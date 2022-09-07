@@ -1,8 +1,42 @@
 from typing import Set
 import components as com
-from abc import ABC, abstractmethod
 from engine import ECS, SSystem
 import OpenGL.GL as gl
+import random, glfw
+
+class SSquareNoisyController(SSystem):
+  def __init__(self, window, speed):
+    super().__init__()
+    self.window = window
+    self.speed = speed
+
+  def init(self):
+    self.comset:Set[int] = set([com.CPosition, com.CRectangle, com.CColor])
+    self.entities:Set[int] = set()
+
+  def update(self, ecs:ECS, dt:float):
+    dx = self.speed * (glfw.get_key(self.window, glfw.KEY_RIGHT) - glfw.get_key(self.window, glfw.KEY_LEFT))
+    dy = self.speed * (glfw.get_key(self.window, glfw.KEY_UP) - glfw.get_key(self.window, glfw.KEY_DOWN))
+    for entid in self.entities:
+      pos:com.CPosition = ecs.getComponent(entid, com.CPosition)
+      color:com.CColor = ecs.getComponent(entid, com.CColor)
+      rect:com.CRectangle = ecs.getComponent(entid, com.CRectangle)
+      pos.x = pos.x + dx*dt
+      pos.y = pos.y + dy*dt
+      gl.glBegin(gl.GL_QUADS)
+      gl.glColor3f(color.r, color.g, color.b)
+      hh0 = rect.h/2
+      hw0 = rect.w/2
+      ox = (hw0, hw0, -hw0, -hw0)
+      oy = (-hh0, hh0, hh0, -hh0)
+      rx = random.random()/100 
+      ry = random.random()/100 
+      for i in range(4):
+        gl.glVertex3f(pos.x + rx + ox[i], pos.y +ry + oy[i], 0)
+      gl.glEnd()
+
+  def shutdown(self):
+    self.entities.clear()
 
 class SLeftRight(SSystem):
   def init(self):

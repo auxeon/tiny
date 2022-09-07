@@ -56,7 +56,3 @@ class CMoveLeftRight(CComponent):
   upspeed:float = 0.005
   downspeed:float = 0.005
   goingup:bool = True
-
-allcomponents = [CPosition, CRotation, CScale, CColor, CHealth, CRectangle, CMoveUpDown, CMoveLeftRight]
-id2component = {key:val for key,val in enumerate(allcomponents)}
-component2id = {key:val for val,key in enumerate(allcomponents)}
